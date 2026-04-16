@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout :: layout(~{::title}, ~{::section})}">
+<head>
+    <title>Fatura - FinançasPro</title>
+</head>
+<body>
+<section th:fragment="content">
+
+    <div class="page-header">
+        <div>
+            <h1 class="page-title">Fatura do Cartão</h1>
+            <p class="page-subtitle">Lançamentos de cartão de crédito</p>
+        </div>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalFatura" onclick="limparForm()">
+            <i class="bi bi-plus-lg me-1"></i>Novo Lançamento
+        </button>
+    </div>
+
+    <!-- Tabela -->
+    <div class="card">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table mb-0">
+                    <thead>
+                        <tr>
+                            <th>Nome</th>
+                            <th>Valor</th>
+                            <th>Progresso</th>
+                            <th>Vencimento</th>
+                            <th>Status</th>
+                            <th style="width:90px">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="d : ${faturasItens}">
+                            <td class="fw-medium">
+                                <span th:text="${d.nome}">Nome</span>
+                                <span th:if="${d.tipo == 'IMPORTADO'}"
+                                      class="badge ms-1" style="background:#EDE9FE;color:#7C3AED;font-size:0.65rem">
+                                    importado
+                                </span>
+                            </td>
+                            <td class="fw-semibold text-expense"
+                                th:text="'R$ ' + ${#numbers.formatDecimal(d.valorTotal, 1, 'POINT', 2, 'COMMA')}">
+                                R$ 0,00
+                            </td>
+                            <td style="min-width:140px">
+                                <div class="progress mb-1">
+                                    <div class="progress-bar"
+                                         style="background:var(--accent)"
+                                         th:style="'width:' + ${d.percentualPago} + '%; background:var(--accent)'"></div>
+                                </div>
+                                <small class="text-muted" th:text="${d.percentualPago} + '% pago'">0%</small>
+                            </td>
+                            <td class="text-muted"
+                                th:text="${d.vencimento != null ? #temporals.format(d.vencimento, 'dd/MM/yyyy') : '—'}">—</td>
+                            <td>
+                                <span class="badge"
+                                      th:classappend="'badge-status-' + ${d.status}"
+                                      th:text="${d.status}">STATUS</span>
+                            </td>
+                            <td>
+                                <a th:href="@{/fatura/editar/{id}(id=${d.id})}"
+                                   class="btn btn-sm btn-outline-primary me-1" title="Editar">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <a th:href="@{/fatura/excluir/{id}(id=${d.id})}"
+                                   class="btn btn-sm btn-outline-danger"
+                                   title="Excluir"
+                                   onclick="return confirm('Excluir este lançamento?')">
+                                    <i class="bi bi-trash"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        <tr th:if="${#lists.isEmpty(faturasItens)}">
+                            <td colspan="6">
+                                <div class="empty-state">
+                                    <i class="bi bi-receipt"></i>
+                                    <p>Nenhum lançamento de fatura cadastrado.</p>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal cadastro/edição -->
+    <div class="modal fade" id="modalFatura" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="bi bi-receipt me-2 text-accent"></i>Lançamento de Fatura
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form th:action="@{/fatura/salvar}" method="post" th:object="${faturaItem}">
+                    <input type="hidden" th:field="*{id}">
+                    <div class="modal-body">
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label class="form-label">Nome do Lançamento</label>
+                                <input type="text" class="form-control" th:field="*{nome}" required
+                                       placeholder="Ex: Netflix, Compra no Mercado...">
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label">Valor Total (R$)</label>
+                                <input type="number" step="0.01" min="0" class="form-control"
+                                       th:field="*{valorTotal}" required placeholder="0,00">
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label">Valor Restante (R$)</label>
+                                <input type="number" step="0.01" min="0" class="form-control"
+                                       th:field="*{valorRestante}" required placeholder="0,00">
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label">Vencimento</label>
+                                <input type="date" class="form-control" th:field="*{vencimento}" required>
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label">Status</label>
+                                <select class="form-select" th:field="*{status}">
+                                    <option value="PENDENTE">Pendente</option>
+                                    <option value="ATIVO">Ativo</option>
+                                    <option value="VENCIDA">Vencida</option>
+                                    <option value="PAGO">Pago</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-lg me-1"></i>Salvar
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function limparForm() {
+            const form = document.querySelector('#modalFatura form');
+            if (form) form.reset();
+        }
+
+        const faturaItemId = /*[[${faturaItem?.id}]]*/ null;
+        if (faturaItemId) {
+            new bootstrap.Modal(document.getElementById('modalFatura')).show();
+        }
+    </script>
+
+</section>
+</body>
+</html>

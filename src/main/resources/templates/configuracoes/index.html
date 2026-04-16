@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout :: layout(~{::title}, ~{::section})}">
+<head><title>Configurações - FinançasPro</title></head>
+<body>
+<section th:fragment="content">
+
+    <div class="page-header">
+        <div>
+            <h1 class="page-title">Configurações</h1>
+            <p class="page-subtitle">Gerencie contas, cartões e categorias</p>
+        </div>
+    </div>
+
+    <div th:if="${sucesso}" class="alert alert-success alert-dismissible fade show mb-3">
+        <i class="bi bi-check-circle me-2"></i><span th:text="${sucesso}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    <div th:if="${erro}" class="alert alert-danger alert-dismissible fade show mb-3">
+        <i class="bi bi-exclamation-triangle me-2"></i><span th:text="${erro}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+
+    <ul class="nav nav-tabs mb-4" id="configTabs">
+        <li class="nav-item">
+            <a class="nav-link active" data-bs-toggle="tab" href="#tabContas">
+                <i class="bi bi-bank2 me-1"></i>Contas Bancárias
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" data-bs-toggle="tab" href="#tabCategorias">
+                <i class="bi bi-tags me-1"></i>Categorias
+            </a>
+        </li>
+    </ul>
+
+    <div class="tab-content">
+
+        <!-- ── Contas bancárias ──────────────────────── -->
+        <div class="tab-pane fade show active" id="tabContas">
+            <div class="row g-4">
+                <div class="col-md-7">
+                    <div class="card">
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th>Nome</th>
+                                            <th>Agência</th>
+                                            <th>Conta</th>
+                                            <th>Saldo Inicial</th>
+                                            <th style="width:90px">Ações</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr th:each="c, cStat : ${contas}">
+                                            <td class="fw-semibold" th:text="${c.nome}">—</td>
+                                            <td class="text-muted" th:text="${c.agencia ?: '—'}">—</td>
+                                            <td class="text-muted" th:text="${c.conta ?: '—'}">—</td>
+                                            <td th:text="'R$ ' + ${#numbers.formatDecimal(c.saldoInicial, 1, 'POINT', 2, 'COMMA')}">R$ 0,00</td>
+                                            <td>
+                                                <button type="button" class="btn btn-sm btn-outline-primary me-1"
+                                                        title="Editar"
+                                                        th:attr="data-index=${cStat.index}"
+                                                        onclick="editarConta(this.dataset.index)">
+                                                    <i class="bi bi-pencil"></i>
+                                                </button>
+                                                <a th:href="@{/configuracoes/contas/{id}/desativar(id=${c.id})}"
+                                                   class="btn btn-sm btn-outline-danger" title="Desativar"
+                                                   onclick="return confirm('Desativar esta conta?')">
+                                                    <i class="bi bi-x-lg"></i>
+                                                </a>
+                                            </td>
+                                        </tr>
+                                        <tr th:if="${#lists.isEmpty(contas)}">
+                                            <td colspan="5" class="text-center text-muted py-3">Nenhuma conta cadastrada</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-5">
+                    <div class="card">
+                        <div class="card-body">
+                            <h6 class="fw-semibold mb-3">Nova Conta Bancária</h6>
+                            <form th:action="@{/configuracoes/contas}" method="post" th:object="${novaConta}">
+                                <div class="row g-3">
+                                    <div class="col-12">
+                                        <label class="form-label">Nome do Banco</label>
+                                        <input type="text" class="form-control" th:field="*{nome}" required placeholder="Ex: Nubank, Bradesco...">
+                                    </div>
+                                    <div class="col-6">
+                                        <label class="form-label">Agência</label>
+                                        <input type="text" class="form-control" th:field="*{agencia}" placeholder="Opcional">
+                                    </div>
+                                    <div class="col-6">
+                                        <label class="form-label">Conta</label>
+                                        <input type="text" class="form-control" th:field="*{conta}" placeholder="Opcional">
+                                    </div>
+                                    <div class="col-12">
+                                        <label class="form-label">Saldo Inicial (R$)</label>
+                                        <input type="number" step="0.01" class="form-control" th:field="*{saldoInicial}" placeholder="0,00">
+                                    </div>
+                                    <div class="col-12">
+                                        <button type="submit" class="btn btn-primary w-100">
+                                            <i class="bi bi-plus-lg me-1"></i>Adicionar Conta
+                                        </button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── Categorias ────────────────────────────── -->
+        <div class="tab-pane fade" id="tabCategorias">
+            <div class="row g-4">
+                <div class="col-md-8">
+                    <div class="card">
+                        <div class="card-body p-0">
+                            <div th:each="raiz : ${categorias}">
+                                <div class="d-flex align-items-center justify-content-between px-4 py-3"
+                                     style="border-bottom:1px solid var(--border)">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="d-inline-block rounded-circle"
+                                              th:style="'width:10px;height:10px;border-radius:50%;background:' + ${raiz.cor ?: '#6B7280'}"></span>
+                                        <span class="fw-semibold" th:text="${raiz.nome}">—</span>
+                                        <span class="badge" style="font-size:0.68rem;background:#EDE9FE;color:#7C3AED"
+                                              th:text="${raiz.tipo.name()}">—</span>
+                                        <span th:unless="${raiz.ativa}" class="badge bg-secondary" style="font-size:0.68rem">Inativa</span>
+                                    </div>
+                                    <div class="d-flex gap-1">
+                                        <button type="button" class="btn btn-sm btn-outline-primary" title="Editar"
+                                                th:attr="data-id=${raiz.id},data-nome=${raiz.nome},data-tipo=${raiz.tipo.name()},data-cor=${raiz.cor ?: '#6366F1'},data-icone=${raiz.icone ?: ''}"
+                                                onclick="editarCategoria(this)">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+                                        <a th:if="${raiz.ativa}"
+                                           th:href="@{/configuracoes/categorias/{id}/desativar(id=${raiz.id})}"
+                                           class="btn btn-sm btn-outline-secondary" title="Desativar">
+                                            <i class="bi bi-eye-slash"></i>
+                                        </a>
+                                        <a th:unless="${raiz.ativa}"
+                                           th:href="@{/configuracoes/categorias/{id}/ativar(id=${raiz.id})}"
+                                           class="btn btn-sm btn-outline-success" title="Ativar">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                        <a th:href="@{/configuracoes/categorias/{id}/excluir(id=${raiz.id})}"
+                                           class="btn btn-sm btn-outline-danger" title="Excluir"
+                                           onclick="return confirm('Excluir esta categoria e suas subcategorias?')">
+                                            <i class="bi bi-trash"></i>
+                                        </a>
+                                    </div>
+                                </div>
+                                <div th:each="filha : ${raiz.filhas}"
+                                     class="d-flex align-items-center justify-content-between ps-5 pe-4 py-2"
+                                     style="border-bottom:1px solid var(--border);background:#FAFBFC">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <i class="bi bi-arrow-return-right text-muted" style="font-size:0.75rem"></i>
+                                        <span class="text-muted" style="font-size:0.875rem" th:text="${filha.nome}">—</span>
+                                        <span th:unless="${filha.ativa}" class="badge bg-secondary" style="font-size:0.68rem">Inativa</span>
+                                    </div>
+                                    <div class="d-flex gap-1">
+                                        <button type="button" class="btn btn-sm btn-outline-primary" title="Editar"
+                                                th:attr="data-id=${filha.id},data-nome=${filha.nome},data-tipo=${filha.tipo.name()},data-cor=${filha.cor ?: '#6366F1'},data-icone=${filha.icone ?: ''}"
+                                                onclick="editarCategoria(this)">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+                                        <a th:if="${filha.ativa}"
+                                           th:href="@{/configuracoes/categorias/{id}/desativar(id=${filha.id})}"
+                                           class="btn btn-sm btn-outline-secondary" title="Desativar">
+                                            <i class="bi bi-eye-slash"></i>
+                                        </a>
+                                        <a th:unless="${filha.ativa}"
+                                           th:href="@{/configuracoes/categorias/{id}/ativar(id=${filha.id})}"
+                                           class="btn btn-sm btn-outline-success" title="Ativar">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                        <a th:href="@{/configuracoes/categorias/{id}/excluir(id=${filha.id})}"
+                                           class="btn btn-sm btn-outline-danger" title="Excluir"
+                                           onclick="return confirm('Excluir esta subcategoria?')">
+                                            <i class="bi bi-trash"></i>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                            <div th:if="${#lists.isEmpty(categorias)}" class="empty-state">
+                                <i class="bi bi-tags"></i>
+                                <p>Nenhuma categoria cadastrada.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-body">
+                            <h6 class="fw-semibold mb-3" id="tituloCatForm">Nova Categoria</h6>
+                            <form th:action="@{/configuracoes/categorias}" method="post" id="formCategoria">
+                                <input type="hidden" name="id" id="catId">
+                                <div class="row g-3">
+                                    <div class="col-12">
+                                        <label class="form-label">Nome</label>
+                                        <input type="text" class="form-control" name="nome" id="catNome" required placeholder="Ex: Alimentação">
+                                    </div>
+                                    <div class="col-6">
+                                        <label class="form-label">Tipo</label>
+                                        <select class="form-select" name="tipo" id="catTipo" required>
+                                            <option value="DESPESA">Despesa</option>
+                                            <option value="RECEITA">Receita</option>
+                                            <option value="TRANSFERENCIA">Transferência</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-6">
+                                        <label class="form-label">Cor</label>
+                                        <input type="color" class="form-control form-control-color w-100" name="cor" id="catCor" value="#6366F1">
+                                    </div>
+                                    <div class="col-12">
+                                        <label class="form-label">Ícone (Bootstrap Icons)</label>
+                                        <input type="text" class="form-control" name="icone" id="catIcone" placeholder="Ex: cart3, house, heart">
+                                    </div>
+                                    <div class="col-12">
+                                        <label class="form-label">Categoria Pai (subcategoria)</label>
+                                        <select class="form-select" name="pai.id" id="catPaiId">
+                                            <option value="">— É categoria raiz —</option>
+                                            <option th:each="c : ${categorias}"
+                                                    th:value="${c.id}"
+                                                    th:text="${c.nome}">—</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-12 d-flex gap-2">
+                                        <button type="submit" class="btn btn-primary flex-fill">
+                                            <i class="bi bi-check-lg me-1"></i>Salvar
+                                        </button>
+                                        <button type="button" class="btn btn-outline-secondary" onclick="novaCat()">
+                                            Limpar
+                                        </button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal editar conta -->
+    <div class="modal fade" id="modalConta" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-bank2 me-2 text-accent"></i>Editar Conta</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form action="/configuracoes/contas" method="post">
+                    <input type="hidden" name="id" id="contaEditId">
+                    <div class="modal-body">
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label class="form-label">Nome do Banco</label>
+                                <input type="text" class="form-control" name="nome" id="contaEditNome" required>
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label">Agência</label>
+                                <input type="text" class="form-control" name="agencia" id="contaEditAgencia">
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label">Conta</label>
+                                <input type="text" class="form-control" name="conta" id="contaEditConta">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Saldo Inicial (R$)</label>
+                                <input type="number" step="0.01" class="form-control" name="saldoInicial" id="contaEditSaldo">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>Salvar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script th:inline="javascript">
+        /*<![CDATA[*/
+        var contasData = /*[[${contas}]]*/ [];
+        /*]]>*/
+
+        function editarConta(idx) {
+            var c = contasData[idx];
+            document.getElementById('contaEditId').value = c.id;
+            document.getElementById('contaEditNome').value = c.nome;
+            document.getElementById('contaEditAgencia').value = c.agencia || '';
+            document.getElementById('contaEditConta').value = c.conta || '';
+            document.getElementById('contaEditSaldo').value = c.saldoInicial;
+            new bootstrap.Modal(document.getElementById('modalConta')).show();
+        }
+
+        function editarCategoria(btn) {
+            document.getElementById('catId').value = btn.dataset.id;
+            document.getElementById('catNome').value = btn.dataset.nome;
+            document.getElementById('catTipo').value = btn.dataset.tipo;
+            document.getElementById('catCor').value = btn.dataset.cor;
+            document.getElementById('catIcone').value = btn.dataset.icone || '';
+            document.getElementById('catPaiId').value = '';
+            document.getElementById('tituloCatForm').textContent = 'Editar Categoria';
+            // Abre a aba de categorias
+            var tab = document.querySelector('[href="#tabCategorias"]');
+            if (tab) new bootstrap.Tab(tab).show();
+            document.getElementById('catNome').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function novaCat() {
+            document.getElementById('catId').value = '';
+            document.getElementById('catNome').value = '';
+            document.getElementById('catTipo').value = 'DESPESA';
+            document.getElementById('catCor').value = '#6366F1';
+            document.getElementById('catIcone').value = '';
+            document.getElementById('catPaiId').value = '';
+            document.getElementById('tituloCatForm').textContent = 'Nova Categoria';
+        }
+
+        window.addEventListener('load', function() {
+            const hash = window.location.hash;
+            if (hash === '#categorias') {
+                var tab = document.querySelector('[href="#tabCategorias"]');
+                if (tab) new bootstrap.Tab(tab).show();
+            }
+        });
+    </script>
+
+</section>
+</body>
+</html>

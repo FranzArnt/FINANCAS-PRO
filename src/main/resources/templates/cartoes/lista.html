@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout :: layout(~{::title}, ~{::section})}">
+<head><title>Cartões - FinançasPro</title></head>
+<body>
+<section th:fragment="content">
+
+    <div class="page-header">
+        <div>
+            <h1 class="page-title">Cartões de Crédito</h1>
+            <p class="page-subtitle">Gerencie seus cartões e acompanhe faturas</p>
+        </div>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalCartao" onclick="limparForm()">
+            <i class="bi bi-plus-lg me-1"></i>Novo Cartão
+        </button>
+    </div>
+
+    <!-- Alertas -->
+    <div th:if="${sucesso}" class="alert alert-success alert-dismissible fade show mb-3">
+        <i class="bi bi-check-circle me-2"></i><span th:text="${sucesso}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    <div th:if="${erro}" class="alert alert-danger alert-dismissible fade show mb-3">
+        <i class="bi bi-exclamation-triangle me-2"></i><span th:text="${erro}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+
+    <!-- Cards dos cartões -->
+    <div class="row g-3 mb-4" th:if="${not #lists.isEmpty(cartoes)}">
+        <div class="col-md-6 col-lg-4" th:each="c : ${cartoes}">
+            <div class="card h-100" style="border-top: 4px solid" th:style="'border-top: 4px solid ' + ${c.cor != null ? c.cor : '#6366F1'}">
+                <div class="card-body">
+                    <!-- Header do cartão -->
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div>
+                            <div class="fw-bold" style="font-size:1.05rem" th:text="${c.nome}">Cartão</div>
+                            <div class="text-muted" style="font-size:0.78rem" th:text="${c.bandeira}">BANDEIRA</div>
+                        </div>
+                        <div class="d-flex gap-1">
+                            <a th:href="@{/cartoes/{id}/editar(id=${c.id})}"
+                               class="btn btn-sm btn-outline-secondary" title="Editar">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            <a th:href="@{/cartoes/{id}/desativar(id=${c.id})}"
+                               class="btn btn-sm btn-outline-danger" title="Desativar"
+                               onclick="return confirm('Desativar este cartão?')">
+                                <i class="bi bi-x-lg"></i>
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Limite -->
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between mb-1">
+                            <small class="text-muted">Limite usado</small>
+                            <small class="fw-semibold"
+                                   th:text="${#numbers.formatDecimal(c.limiteTotal.subtract(limites[c.id] ?: c.limiteTotal), 1, 'POINT', 2, 'COMMA')} + ' / R$ ' + ${#numbers.formatDecimal(c.limiteTotal, 1, 'POINT', 2, 'COMMA')}">
+                                0,00 / R$ 0,00
+                            </small>
+                        </div>
+                        <div class="progress">
+                            <div class="progress-bar"
+                                 th:style="'width:' + ${percentuaisUsados[c.id] ?: 0} + '%; background:' + ${c.cor != null ? c.cor : 'var(--accent)'}">
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-between mt-1">
+                            <small class="text-muted">Disponível</small>
+                            <small class="text-income fw-semibold"
+                                   th:text="'R$ ' + ${#numbers.formatDecimal(limites[c.id] ?: T(java.math.BigDecimal).ZERO, 1, 'POINT', 2, 'COMMA')}">R$ 0,00</small>
+                        </div>
+                    </div>
+
+                    <!-- Info vencimento -->
+                    <div class="d-flex justify-content-between" style="font-size:0.8rem">
+                        <div class="text-muted">
+                            <i class="bi bi-calendar3 me-1"></i>
+                            Fecha dia <strong th:text="${c.diaFechamento}">0</strong> ·
+                            Vence dia <strong th:text="${c.diaVencimento}">0</strong>
+                        </div>
+                    </div>
+                    <div class="mt-2" style="font-size:0.8rem">
+                        <span class="text-muted">Próx. vencimento: </span>
+                        <strong th:text="${proximosVencimentos[c.id] != null ? #temporals.format(proximosVencimentos[c.id], 'dd/MM/yyyy') : '—'}">—</strong>
+                    </div>
+
+                    <!-- Botões -->
+                    <div class="mt-3 d-flex gap-2">
+                        <a th:href="@{/faturas/cartao/{id}/atual(id=${c.id})}"
+                           class="btn btn-sm flex-fill"
+                           th:style="'background:' + ${c.cor != null ? c.cor : 'var(--accent)'} + '; color:white; border:none'">
+                            <i class="bi bi-plus-lg me-1"></i>Lançar
+                        </a>
+                        <a th:href="@{/cartoes/{id}/faturas(id=${c.id})}"
+                           class="btn btn-sm btn-outline-secondary flex-fill">
+                            <i class="bi bi-receipt me-1"></i>Faturas
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Empty state -->
+    <div class="card" th:if="${#lists.isEmpty(cartoes)}">
+        <div class="empty-state">
+            <i class="bi bi-credit-card-2-front"></i>
+            <p>Nenhum cartão cadastrado. Adicione seu primeiro cartão!</p>
+        </div>
+    </div>
+
+    <!-- Modal novo/editar cartão -->
+    <div class="modal fade" id="modalCartao" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-credit-card-2-front me-2 text-accent"></i>Cadastrar Cartão</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form th:action="@{/cartoes}" method="post" th:object="${cartao}">
+                    <input type="hidden" th:field="*{id}">
+                    <div class="modal-body">
+                        <div class="row g-3">
+                            <div class="col-7">
+                                <label class="form-label">Nome do Cartão</label>
+                                <input type="text" class="form-control" th:field="*{nome}" required placeholder="Ex: Nubank, Inter...">
+                            </div>
+                            <div class="col-5">
+                                <label class="form-label">Bandeira</label>
+                                <select class="form-select" th:field="*{bandeira}" required>
+                                    <option value="MASTERCARD">Mastercard</option>
+                                    <option value="VISA">Visa</option>
+                                    <option value="ELO">Elo</option>
+                                    <option value="AMEX">Amex</option>
+                                    <option value="HIPERCARD">Hipercard</option>
+                                </select>
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label">Limite Total (R$)</label>
+                                <input type="number" step="0.01" min="0" class="form-control" th:field="*{limiteTotal}" required placeholder="0,00">
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label">Cor</label>
+                                <input type="color" class="form-control form-control-color w-100" th:field="*{cor}" value="#6366F1">
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label">Dia de Vencimento</label>
+                                <input type="number" min="1" max="31" class="form-control" th:field="*{diaVencimento}" required
+                                       placeholder="Ex: 10" oninput="calcularFechamento(this.value)">
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label">Dia de Fechamento</label>
+                                <input type="number" min="1" max="31" class="form-control" th:field="*{diaFechamento}"
+                                       id="diaFechamento" placeholder="Calculado auto">
+                                <div class="form-text">Deixe em branco para calcular (vencimento - 7 dias)</div>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Conta Bancária</label>
+                                <select class="form-select" th:field="*{conta.id}">
+                                    <option value="">— Selecione —</option>
+                                    <option th:each="conta : ${contas}"
+                                            th:value="${conta.id}"
+                                            th:text="${conta.nome}">Conta</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>Salvar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function limparForm() {
+            const form = document.querySelector('#modalCartao form');
+            if (form) form.reset();
+        }
+
+        function calcularFechamento(vencimento) {
+            const v = parseInt(vencimento);
+            if (!isNaN(v)) {
+                let f = v - 7;
+                if (f <= 0) f += 31;
+                document.getElementById('diaFechamento').value = f;
+            }
+        }
+
+        window.addEventListener('load', function () {
+            const cartaoId = /*[[${cartao?.id}]]*/ null;
+            if (cartaoId) {
+                new bootstrap.Modal(document.getElementById('modalCartao')).show();
+            }
+        });
+    </script>
+
+</section>
+</body>
+</html>
