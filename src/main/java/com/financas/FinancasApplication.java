@@ -13,6 +13,7 @@ import javax.swing.*;
 public class FinancasApplication {
 
     public static void main(String[] args) {
+        System.setProperty("java.awt.headless", "false");
         ConfigurableApplicationContext ctx = SpringApplication.run(FinancasApplication.class, args);
 
         SwingUtilities.invokeLater(() -> {
