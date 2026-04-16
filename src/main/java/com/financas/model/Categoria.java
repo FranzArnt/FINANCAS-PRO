@@ -60,4 +60,8 @@ public class Categoria {
 
     public boolean isRaiz() { return pai == null; }
     public boolean isSubcategoria() { return pai != null; }
+
+    @Override public String toString() {
+        return nome != null ? (pai != null ? "  " + nome : nome) : "";
+    }
 }

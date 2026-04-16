@@ -46,4 +46,6 @@ public class ContaBancaria {
     public void setSaldoInicial(BigDecimal saldoInicial) { this.saldoInicial = saldoInicial; }
     public boolean isAtiva() { return ativa; }
     public void setAtiva(boolean ativa) { this.ativa = ativa; }
+
+    @Override public String toString() { return nome != null ? nome : ""; }
 }

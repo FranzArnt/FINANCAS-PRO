@@ -1,39 +1,38 @@
 package com.financas;
 
-import javafx.application.Application;
+import com.financas.service.*;
+import com.financas.ui.MainWindow;
+import com.formdev.flatlaf.FlatIntelliJLaf;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.ConfigurableApplicationContext;
 
-import java.awt.Desktop;
-import java.net.URI;
+import javax.swing.*;
 
 @SpringBootApplication
 public class FinancasApplication {
 
-    static ConfigurableApplicationContext springContext;
-    private static final String URL = "http://localhost:8080/dashboard";
-
     public static void main(String[] args) {
-        springContext = SpringApplication.run(FinancasApplication.class, args);
+        ConfigurableApplicationContext ctx = SpringApplication.run(FinancasApplication.class, args);
 
-        try {
-            Application.launch(FinancasApp.class, args);
-        } catch (Exception e) {
-            System.out.println("\n[FinancasPro] Janela nativa indisponivel. Abrindo no navegador...");
-            abrirNavegador();
-            System.out.println("[FinancasPro] Acesse: " + URL);
-            System.out.println("[FinancasPro] Pressione CTRL+C para encerrar o aplicativo.\n");
-            springContext.registerShutdownHook();
-        }
-    }
+        SwingUtilities.invokeLater(() -> {
+            FlatIntelliJLaf.setup();
+            UIManager.put("Button.arc", 8);
+            UIManager.put("Component.arc", 8);
+            UIManager.put("TextComponent.arc", 8);
+            UIManager.put("ScrollBar.width", 8);
 
-    private static void abrirNavegador() {
-        try {
-            if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
-                Desktop.getDesktop().browse(new URI(URL));
-            }
-        } catch (Exception ignored) {
-        }
+            MainWindow window = new MainWindow(
+                    ctx.getBean(DashboardService.class),
+                    ctx.getBean(MovimentacaoService.class),
+                    ctx.getBean(CartaoService.class),
+                    ctx.getBean(FaturaService.class),
+                    ctx.getBean(ConfiguracoesService.class),
+                    ctx.getBean(FinancasService.class)
+            );
+            window.setVisible(true);
+
+            Runtime.getRuntime().addShutdownHook(new Thread(ctx::close));
+        });
     }
 }
