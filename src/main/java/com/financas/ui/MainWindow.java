@@ -16,7 +16,6 @@ public class MainWindow extends JFrame {
     private final TransacoesPanel    transacoesPanel;
     private final InvestimentosPanel investimentosPanel;
     private final ConfiguracoesPanel configuracoesPanel;
-    private final DividasPanel       dividasPanel;
 
     public MainWindow(DashboardService dashSvc,
                       MovimentacaoService movSvc,
@@ -30,19 +29,17 @@ public class MainWindow extends JFrame {
         setMinimumSize(new Dimension(900, 600));
         setLocationRelativeTo(null);
 
-        dashboardPanel     = new DashboardPanel(dashSvc, movSvc);
+        dashboardPanel     = new DashboardPanel(dashSvc, movSvc, confSvc, cartaoSvc);
         cartoesPanel       = new CartoesPanel(cartaoSvc, faturaSvc, confSvc, movSvc);
         transacoesPanel    = new TransacoesPanel(movSvc, confSvc);
         investimentosPanel = new InvestimentosPanel(financasSvc, movSvc);
         configuracoesPanel = new ConfiguracoesPanel(confSvc, movSvc);
-        dividasPanel       = new DividasPanel(financasSvc);
 
         content.add(dashboardPanel,     "dashboard");
         content.add(cartoesPanel,       "cartoes");
         content.add(transacoesPanel,    "transacoes");
         content.add(investimentosPanel, "investimentos");
         content.add(configuracoesPanel, "configuracoes");
-        content.add(dividasPanel,       "dividas");
 
         setLayout(new BorderLayout());
         add(new SidebarPanel(this::navigate), BorderLayout.WEST);
@@ -59,7 +56,6 @@ public class MainWindow extends JFrame {
             case "transacoes"    -> transacoesPanel.refresh();
             case "investimentos" -> investimentosPanel.refresh();
             case "configuracoes" -> configuracoesPanel.refresh();
-            case "dividas"       -> dividasPanel.refresh();
         }
     }
 }

@@ -50,14 +50,18 @@ public class DividasPanel extends JPanel {
         JButton btnEditar = UIUtils.secondaryBtn("Editar");
         btnEditar.addActionListener(e -> {
             int row = table.getSelectedRow();
-            if (row < 0) { JOptionPane.showMessageDialog(this, "Selecione uma dívida."); return; }
+            if (row < 0 || dados == null || row >= dados.size()) {
+                JOptionPane.showMessageDialog(this, "Selecione uma dívida."); return;
+            }
             openForm(dados.get(row));
         });
 
         JButton btnExcluir = UIUtils.dangerBtn("Excluir");
         btnExcluir.addActionListener(e -> {
             int row = table.getSelectedRow();
-            if (row < 0) { JOptionPane.showMessageDialog(this, "Selecione uma dívida."); return; }
+            if (row < 0 || dados == null || row >= dados.size()) {
+                JOptionPane.showMessageDialog(this, "Selecione uma dívida."); return;
+            }
             int conf = JOptionPane.showConfirmDialog(this, "Excluir esta dívida?",
                     "Confirmar", JOptionPane.YES_NO_OPTION);
             if (conf == JOptionPane.YES_OPTION) {

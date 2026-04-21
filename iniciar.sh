@@ -1,3 +1,4 @@
 #!/bin/bash
 echo "Iniciando FinancasPro..."
-java -jar financas.jar
+DIR="$(cd "$(dirname "$0")" && pwd)"
+java -jar "$DIR/target/financas.jar"

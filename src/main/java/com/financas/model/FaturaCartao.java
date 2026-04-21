@@ -11,7 +11,7 @@ import java.util.List;
 @DiscriminatorValue("FATURA")
 public class FaturaCartao extends Movimentacao {
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "cartao_id")
     private CartaoCredito cartao;
 

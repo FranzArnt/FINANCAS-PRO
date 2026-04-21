@@ -1,4 +1,4 @@
 @echo off
 echo Iniciando FinancasPro...
-java -jar financas.jar
+java -jar "%~dp0target\financas.jar"
 pause

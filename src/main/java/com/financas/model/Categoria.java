@@ -22,7 +22,7 @@ public class Categoria {
     @Column(nullable = false)
     private TipoCategoria tipo;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "pai_id")
     private Categoria pai;
 

@@ -15,17 +15,20 @@ public class DashboardService {
     private final MovimentacaoRepository movRepo;
     private final FaturaRepository faturaRepo;
     private final ContaBancariaRepository contaRepo;
+    private final InvestimentoRepository investimentoRepo;
     private final MovimentacaoService movService;
     private final FaturaService faturaService;
 
     public DashboardService(MovimentacaoRepository movRepo,
                             FaturaRepository faturaRepo,
                             ContaBancariaRepository contaRepo,
+                            InvestimentoRepository investimentoRepo,
                             MovimentacaoService movService,
                             FaturaService faturaService) {
         this.movRepo = movRepo;
         this.faturaRepo = faturaRepo;
         this.contaRepo = contaRepo;
+        this.investimentoRepo = investimentoRepo;
         this.movService = movService;
         this.faturaService = faturaService;
     }
@@ -38,12 +41,16 @@ public class DashboardService {
             BigDecimal saldoAtual,
             BigDecimal saldoProjetado,
             BigDecimal mediaHistorica,
+            BigDecimal totalInvestido,
             List<FaturaCartao> faturasAbertas,
             List<FaturaCartao> faturasAVencer7d,
             Map<String, BigDecimal> gastosPorCategoria,
             List<String> mesesGrafico,
             List<BigDecimal> despesasGrafico,
-            List<BigDecimal> entradasGrafico
+            List<BigDecimal> entradasGrafico,
+            List<String> semanasGrafico,
+            List<BigDecimal> despesasSemanais,
+            List<BigDecimal> entradasSemanais
     ) {}
 
     public DashboardDTO montarDashboard(ContaBancaria conta, YearMonth mes) {
@@ -93,8 +100,13 @@ public class DashboardService {
             entGrafico.add(mapEnt.getOrDefault(c, BigDecimal.ZERO));
         }
 
+        BigDecimal totalInvestido = calcularTotalInvestido();
+        DadosSemanais semanais = calcularSemanais(List.of(conta), mes);
+
         return new DashboardDTO(conta, mes, receitasMes, despesasMes, saldoAtual, saldoProjeto,
-                media, abertas, aVencer7d, gastos, mesesGrafico, despGrafico, entGrafico);
+                media, totalInvestido, abertas, aVencer7d, gastos,
+                mesesGrafico, despGrafico, entGrafico,
+                semanais.semanas(), semanais.despesas(), semanais.entradas());
     }
 
     public DashboardDTO montarDashboardTodos(YearMonth mes) {
@@ -158,12 +170,52 @@ public class DashboardService {
             entGrafico.add(mapEnt.getOrDefault(c, BigDecimal.ZERO));
         }
 
+        BigDecimal totalInvestido = calcularTotalInvestido();
+        DadosSemanais semanais = calcularSemanais(contas, mes);
+
         return new DashboardDTO(null, mes, receitasMes, despesasMes, saldoAtual, saldoProjetado,
-                media, abertas, aVencer7d, gastos, mesesGrafico, despGrafico, entGrafico);
+                media, totalInvestido, abertas, aVencer7d, gastos,
+                mesesGrafico, despGrafico, entGrafico,
+                semanais.semanas(), semanais.despesas(), semanais.entradas());
     }
 
     public List<ContaBancaria> listarContas() {
         return contaRepo.findByAtivaTrue();
+    }
+
+    public BigDecimal calcularTotalInvestido() {
+        BigDecimal total = investimentoRepo.somarTotalAtual();
+        return total != null ? total : BigDecimal.ZERO;
+    }
+
+    public record DadosSemanais(List<String> semanas, List<BigDecimal> despesas, List<BigDecimal> entradas) {}
+
+    private DadosSemanais calcularSemanais(List<ContaBancaria> contas, YearMonth mes) {
+        int[][] faixas = {{1,7},{8,14},{15,21},{22,mes.lengthOfMonth()}};
+        List<String> semanas = List.of("Sem 1","Sem 2","Sem 3","Sem 4");
+        List<BigDecimal> despSem = new ArrayList<>(List.of(BigDecimal.ZERO,BigDecimal.ZERO,BigDecimal.ZERO,BigDecimal.ZERO));
+        List<BigDecimal> entSem  = new ArrayList<>(List.of(BigDecimal.ZERO,BigDecimal.ZERO,BigDecimal.ZERO,BigDecimal.ZERO));
+
+        for (ContaBancaria conta : contas) {
+            List<Movimentacao> movs = movRepo.findByContaAndMes(conta, mes.getYear(), mes.getMonthValue());
+            for (Movimentacao m : movs) {
+                int dia = m.getData().getDayOfMonth();
+                for (int s = 0; s < 4; s++) {
+                    if (dia >= faixas[s][0] && dia <= faixas[s][1]) {
+                        if (m instanceof Transacao t) {
+                            if (t.getDirecao() == DirecaoTransacao.SAIDA)
+                                despSem.set(s, despSem.get(s).add(m.getValor()));
+                            else if (t.getDirecao() == DirecaoTransacao.ENTRADA)
+                                entSem.set(s, entSem.get(s).add(m.getValor()));
+                        } else if (m instanceof FaturaCartao f && f.getStatus() != StatusFatura.PAGA) {
+                            despSem.set(s, despSem.get(s).add(m.getValor()));
+                        }
+                        break;
+                    }
+                }
+            }
+        }
+        return new DadosSemanais(semanas, despSem, entSem);
     }
 
     private String nomeMes(int m) {

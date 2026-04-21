@@ -5,38 +5,90 @@ import com.financas.ui.util.UIUtils;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Consumer;
 
 public class SidebarPanel extends JPanel {
 
+    private static final int EXPANDED_WIDTH  = 220;
+    private static final int COLLAPSED_WIDTH = 52;
+
+    private boolean expanded = true;
     private JButton activeBtn;
+    private final List<JLabel>  sectionLabels = new ArrayList<>();
+    private final List<NavItem> navItems      = new ArrayList<>();
+    private final JLabel        logo;
+    private final JButton       toggleBtn;
 
     public SidebarPanel(Consumer<String> navigator) {
         setBackground(UIUtils.SIDEBAR_BG);
-        setPreferredSize(new Dimension(220, 0));
+        setPreferredSize(new Dimension(EXPANDED_WIDTH, 0));
         setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
 
-        JLabel logo = new JLabel("FinancasPro");
+        // Toggle button
+        toggleBtn = new JButton("◀");
+        toggleBtn.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
+        toggleBtn.setAlignmentX(LEFT_ALIGNMENT);
+        toggleBtn.setHorizontalAlignment(SwingConstants.RIGHT);
+        toggleBtn.setBackground(UIUtils.SIDEBAR_BG);
+        toggleBtn.setForeground(new Color(0x94A3B8));
+        toggleBtn.setFont(toggleBtn.getFont().deriveFont(12f));
+        toggleBtn.setBorderPainted(false);
+        toggleBtn.setFocusPainted(false);
+        toggleBtn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        toggleBtn.setBorder(new EmptyBorder(8, 8, 8, 12));
+        toggleBtn.addActionListener(e -> toggle());
+        add(toggleBtn);
+
+        logo = new JLabel("FinancasPro");
         logo.setForeground(Color.WHITE);
         logo.setFont(logo.getFont().deriveFont(Font.BOLD, 20f));
-        logo.setBorder(new EmptyBorder(28, 20, 28, 20));
+        logo.setBorder(new EmptyBorder(8, 20, 20, 20));
         logo.setAlignmentX(LEFT_ALIGNMENT);
         add(logo);
 
         addSep();
-        addNav("Dashboard",    "dashboard",     navigator);
-        addNav("Cartões",      "cartoes",        navigator);
-        addNav("Transações",   "transacoes",     navigator);
+        addNav("Dashboard",     "dashboard",     "⊞", navigator);
+        addNav("Cartões",       "cartoes",        "▣", navigator);
+        addNav("Transações",    "transacoes",     "↕", navigator);
 
         addSection("OUTROS");
-        addNav("Investimentos", "investimentos", navigator);
-        addNav("Dívidas",       "dividas",       navigator);
-        addNav("Configurações", "configuracoes", navigator);
+        addNav("Investimentos", "investimentos",  "◈", navigator);
+        addNav("Configurações", "configuracoes",  "⚙", navigator);
 
         add(Box.createVerticalGlue());
     }
 
-    private void addNav(String label, String key, Consumer<String> nav) {
+    private void toggle() {
+        expanded = !expanded;
+        int w = expanded ? EXPANDED_WIDTH : COLLAPSED_WIDTH;
+        setPreferredSize(new Dimension(w, 0));
+        setMaximumSize(new Dimension(w, Integer.MAX_VALUE));
+        setMinimumSize(new Dimension(w, 0));
+
+        logo.setVisible(expanded);
+        sectionLabels.forEach(l -> l.setVisible(expanded));
+        for (NavItem item : navItems) {
+            item.btn.setText(expanded ? item.label : item.icon);
+            item.btn.setHorizontalAlignment(expanded ? SwingConstants.LEFT : SwingConstants.CENTER);
+            item.btn.setBorder(expanded
+                    ? new EmptyBorder(10, 20, 10, 20)
+                    : new EmptyBorder(10, 0, 10, 0));
+        }
+        toggleBtn.setText(expanded ? "◀" : "▶");
+        toggleBtn.setHorizontalAlignment(expanded ? SwingConstants.RIGHT : SwingConstants.CENTER);
+
+        revalidate();
+        repaint();
+        // força o pai a rearranjar
+        if (getParent() != null) {
+            getParent().revalidate();
+            getParent().repaint();
+        }
+    }
+
+    private void addNav(String label, String key, String icon, Consumer<String> nav) {
         JButton btn = new JButton(label);
         btn.setMaximumSize(new Dimension(Integer.MAX_VALUE, 44));
         btn.setAlignmentX(LEFT_ALIGNMENT);
@@ -64,6 +116,7 @@ public class SidebarPanel extends JPanel {
         });
 
         if (activeBtn == null) activate(btn);
+        navItems.add(new NavItem(btn, label, icon));
         add(btn);
     }
 
@@ -83,6 +136,7 @@ public class SidebarPanel extends JPanel {
         l.setFont(l.getFont().deriveFont(Font.BOLD, 11f));
         l.setBorder(new EmptyBorder(16, 20, 6, 20));
         l.setAlignmentX(LEFT_ALIGNMENT);
+        sectionLabels.add(l);
         add(l);
     }
 
@@ -92,4 +146,6 @@ public class SidebarPanel extends JPanel {
         s.setMaximumSize(new Dimension(Integer.MAX_VALUE, 1));
         add(s);
     }
+
+    private record NavItem(JButton btn, String label, String icon) {}
 }

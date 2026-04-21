@@ -172,6 +172,7 @@ public class CartoesPanel extends JPanel {
         JTable table = new JTable(model);
         UIUtils.styleTable(table);
 
+        faturaSvc.gerarFaturaSeNaoExistir(cartao, YearMonth.now());
         List<FaturaCartao> faturas = faturaSvc.listarPorCartao(cartao);
         for (FaturaCartao f : faturas) {
             model.addRow(new Object[]{
